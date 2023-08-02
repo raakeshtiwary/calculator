@@ -14,7 +14,7 @@ spec:
         app: calculator
     spec:
       containers:
-      - image: azacrlrn.azurecr.io/calculator:v1
+      - image: azacrlrn.azurecr.io/calculator:v0.1
         name: calculator
         ports:
         - containerPort: 8080
