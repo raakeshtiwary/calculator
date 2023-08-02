@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: calculator
+  name: calculator
+spec:
+  selector:
+    matchLabels:
+      app: calculator
+  template:
+    metadata:
+      labels:
+        app: calculator
+    spec:
+      containers:
+      - image: azacrlrn.azurecr.io/calculator:v1
+        name: calculator
+        ports:
+        - containerPort: 8080
+          name: calculator
+        env:
+        - name: KEDA_SERVICEBUS_AUTH_MODE
+          value: ConnectionString
+        - name: KEDA_SERVICEBUS_TOPIC_CONNECTIONSTRING
+          valueFrom:
+            secretKeyRef:
+             name: calculator-secret
+             key: SERVICEBUS_TOPIC_CONNECTIONSTRING
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: calculator-service
+  name: calculator-service
+spec:
+  selector:
+    app: calculator
+  type: LoadBalancer
+  ports:
+   - protocol: TCP
+     port: 8080
+     targetPort: 8080
+     nodePort: 30001
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: calculator-scaler
+  labels:
+    app: calculator-scaler
+spec:
+  scaleTargetRef:
+    name: calculator
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  triggers:
+  - type: azure-servicebus
+    metadata:
+      topicName: azsbcalctopic
+      subscriptionName: azlearnsub
+      connectionFromEnv: KEDA_SERVICEBUS_TOPIC_CONNECTIONSTRING
+      messageCount: '2'
+      namespace: azsbns
